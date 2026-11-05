@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>随身读 · 高性价比人生指南</title>
+<meta name="description" content="《高性价比人生指南》的随身阅读版：__ENTRIES__ 条建议，每条写明花掉什么、换回什么、证据多硬。接着上次读，断网也能看。读者做的非官方页面。">
+<meta name="theme-color" content="#EEEEF1">
+<meta name="ssd-version" content="__VERSION__">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="随身读">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta property="og:title" content="随身读 · 高性价比人生指南">
+<meta property="og:description" content="__ENTRIES__ 条建议，每条写明花掉什么、换回什么、证据多硬。接着上次读，断网也能看。">
+<!-- 样式、脚本、目录数据都由 scripts/build.mjs 写进这一页（见下面的占位），第一次打开只等这一个文件 -->
+<script>
+  // 首帧之前就定好主题、字号和简化特效，免得页面先闪一下
+  (function () {
+    // 地址少了结尾的斜杠（…/live）时补上，不然图片、数据这些相对路径会指到上一级
+    var path = location.pathname;
+    if (!/\/$|\.html?$/.test(path)) { location.replace(path + '/' + location.search + location.hash); return; }
+    try {
+      var p = (JSON.parse(localStorage.getItem('ssd:v1') || '{}').prefs) || {};
+      var d = document.documentElement;
+      var dark = p.theme === 'dark' || (p.theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      d.dataset.theme = dark ? 'dark' : 'light';
+      if (p.fs) d.dataset.fs = p.fs;
+      if (p.lite) d.dataset.lite = '1';
+    } catch (e) {}
+  })();
+</script>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<main id="view" class="page"><div class="boot">正在打开…</div></main>
+<div id="chrome"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="sheet-root"></div>
+<noscript><p style="padding:40px 20px;font-size:15px;line-height:1.7">这个页面需要 JavaScript 才能打开。也可以直接去原仓库读全书：https://github.com/eternity4719/HowToLiveBetter</p></noscript>
+<script id="boot" type="application/json">__BOOT__</script>
+<script>/*__APP__*/</script>
+</body>
+</html>

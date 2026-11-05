@@ -1,0 +1,7 @@
+.book/
+dist/
+.DS_Store
+.claude/
+.deploy.env
+发布包/
+备份/

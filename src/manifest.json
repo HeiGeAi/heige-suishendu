@@ -1,0 +1,21 @@
+{
+  "name": "随身读 · 高性价比人生指南",
+  "short_name": "随身读",
+  "description": "__ENTRIES__ 条建议，每条写明花掉什么、换回什么、证据多硬。接着上次读，断网也能看。",
+  "lang": "zh-CN",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#EEEEF1",
+  "theme_color": "#EEEEF1",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "接着读", "url": "./#/home" },
+    { "name": "急救", "url": "./#/sos" },
+    { "name": "搜索", "url": "./#/search" }
+  ]
+}

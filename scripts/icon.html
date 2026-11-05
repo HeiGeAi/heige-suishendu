@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>随身读图标</title>
+<!-- 用 Chrome 无头截图生成应用图标：node scripts/make-icons.mjs -->
+<style>
+html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; }
+body { display: grid; place-items: center; background: radial-gradient(120% 90% at 25% 10%, #FFFFFF 0%, #EEEEF1 55%, #DCDCE2 100%); }
+.g { position: relative; width: 66vmin; height: 66vmin; isolation: isolate; }
+.cau { position: absolute; z-index: 0; left: -14%; right: 6%; top: 44%; bottom: -26%; border-radius: 50%; background: linear-gradient(100deg, #FFC93D 0%, #9BE15D 45%, #FF4FA0 100%); filter: blur(6vmin); opacity: .9; }
+.shell { position: relative; z-index: 1; width: 100%; height: 100%; box-sizing: border-box; padding: 3.4vmin; border-radius: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,.75) 0%, rgba(255,255,255,.2) 30%, rgba(255,255,255,.06) 58%, rgba(190,230,120,.7) 100%);
+  box-shadow: inset 0 .5vmin .3vmin #fff, inset 0 -.5vmin .5vmin rgba(255,255,255,.8), inset 0 0 0 .3vmin rgba(255,255,255,.5), 0 .4vmin .8vmin rgba(0,0,0,.2); }
+.core { position: relative; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  background: radial-gradient(60% 90% at 26% 120%, rgba(255,205,40,1) 0%, rgba(0,0,0,0) 70%), radial-gradient(60% 90% at 78% 124%, rgba(255,70,160,.95) 0%, rgba(0,0,0,0) 70%), linear-gradient(180deg, #34343E 0%, #131318 45%, #08080A 100%);
+  box-shadow: inset 0 .4vmin 0 rgba(255,255,255,.55), inset 0 -.4vmin 0 rgba(255,255,255,.3), 0 0 0 .3vmin rgba(0,0,0,.5); }
+.core::before { content: ""; position: absolute; inset: 0 0 52% 0; background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0)); }
+.zi { position: relative; font-family: 'PingFang SC', 'Hiragino Sans GB', sans-serif; font-weight: 600; font-size: 28vmin; line-height: 1; color: #fff; letter-spacing: 0; margin-top: -2vmin; text-shadow: 0 .4vmin 1.6vmin rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div class="g"><span class="cau"></span><div class="shell"><div class="core"><span class="zi">读</span></div></div></div>
+</body>
+</html>
