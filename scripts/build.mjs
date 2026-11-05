@@ -241,7 +241,9 @@ try {
   for (const [id, v] of Object.entries(raw.items || {})) if (byId.has(id)) updates.items[id] = v;
 } catch { console.warn('⚠ 没读到 updates.json，「读过的改了」会是空的'); }
 
-const synced = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai', dateStyle: 'short' }).format(new Date());
+// 同步日期取书稿这次提交的日期：不加 --sync 重新构建时书稿没变，不能写成构建那天
+const bookTime = execFileSync('git', ['-C', BOOK, 'log', '-1', '--format=%cI']).toString().trim();
+const synced = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Shanghai', dateStyle: 'short' }).format(new Date(bookTime));
 const gloss = parseGlossary(readme);
 
 const tierCode = { '极高': 'X', '高': 'H', '一般': 'N' };
