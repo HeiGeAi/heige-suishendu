@@ -14,9 +14,12 @@ cd "$(dirname "$0")/.."
 HOST="${DEPLOY_HOST:?没设置 DEPLOY_HOST，照 .deploy.env.example 写一份 .deploy.env}"
 DEST="${DEPLOY_PATH:?没设置 DEPLOY_PATH}"
 DEST="${DEST%/}"
+[[ "$DEST" == /* ]] && [ "$DEST" != "/" ] || { echo "DEPLOY_PATH 必须是非根目录的绝对路径" >&2; exit 1; }
 URL="${DEPLOY_URL:?没设置 DEPLOY_URL}"
 URL="${URL%/}/"
 PREV="$(dirname "$DEST")/.$(basename "$DEST")-prev"
+printf -v DEST_Q '%q' "$DEST"
+printf -v PREV_Q '%q' "$PREV"
 SSH="ssh ${SSH_OPTS:-}"
 
 [ -f dist/index.html ] && [ -f dist/sw.js ] || { echo "dist/ 不完整，先跑 node scripts/build.mjs" >&2; exit 1; }
@@ -26,8 +29,8 @@ echo "发布 $VERSION → $HOST:$DEST"
 
 # 留一份上一版；目录第一次用时建好，归登录用户，nginx 只读
 $SSH "$HOST" "set -e
-  if [ -f $DEST/index.html ]; then sudo rm -rf $PREV; sudo cp -a $DEST $PREV; fi
-  sudo install -d -o \$(id -un) -g \$(id -gn) -m 755 $DEST"
+  if [ -f $DEST_Q/index.html ]; then sudo rm -rf $PREV_Q; sudo cp -a $DEST_Q $PREV_Q; fi
+  sudo install -d -o \$(id -un) -g \$(id -gn) -m 755 $DEST_Q"
 
 # --delay-updates：全部传完再一起换上，免得有人正好打开时拿到新旧混杂的文件
 rsync -rlptz --delete --delay-updates --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r -e "$SSH" dist/ "$HOST:$DEST/"

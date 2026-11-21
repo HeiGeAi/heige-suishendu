@@ -15,6 +15,7 @@
   const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
   const view = $('#view');
   const chrome = $('#chrome');
+  let routeSeq = 0;
 
   const KOU = { life: '寿命', money: '钱', time: '时间精力', free: '人身自由' };
   const KOU_T = { life: 't-life', money: 't-money', time: 't-blue', free: 't-violet' };
@@ -217,10 +218,16 @@
     return h;
   }
   function hl(text, terms) {
-    const h = esc(text);
-    if (!terms.length) return h;
-    const re = new RegExp(terms.map((w) => esc(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
-    return h.replace(re, (m) => `<mark>${m}</mark>`);
+    const s = String(text ?? '');
+    const list = terms.filter(Boolean);
+    if (!list.length) return esc(s);
+    const re = new RegExp(list.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi');
+    let out = '', last = 0;
+    for (const m of s.matchAll(re)) {
+      out += esc(s.slice(last, m.index)) + `<mark>${esc(m[0])}</mark>`;
+      last = m.index + m[0].length;
+    }
+    return out + esc(s.slice(last));
   }
 
   // ---------- 外框：标签栏、阅读工具条、底部渐隐 ----------
@@ -337,13 +344,17 @@
     const next = nx ? slab({ tag: 'a', t: chapT(nx), cls: 'list', attrs: `href="#/read/${nx.n}/1"`, proj: 'caustic', core: `<span class="lrow">${icon('arrow')}<span class="tx"><b>下一节：${esc(nx.s)}</b><small>第 ${nx.n} 节 · ${nx.cnt} 条</small></span>${goIcon()}</span>` }) : '<p>全书就到这里。</p>';
     return `<section class="cend"><p>第 ${c} 节到这里就完了</p>${next}<a class="linkline" href="#/toc">回目录</a></section>`;
   }
-  async function viewRead(c, n) {
+  async function viewRead(c, n, seq) {
     const cm = chap(c);
     if (!cm) { location.replace('#/toc'); return; }
     let ch;
     const terms = loadMeta().catch(() => null); // 术语解释要用，和正文一起取；没取到也照常显示正文
-    try { ch = await loadChapter(c); } catch (err) { view.className = 'page'; view.innerHTML = errHTML('这一节还没存到手机上，连上网再打开一次就好。'); setChrome('tabs', 'toc'); return; }
+    try { ch = await loadChapter(c); } catch (err) {
+      if (seq !== routeSeq) return;
+      view.className = 'page'; view.innerHTML = errHTML('这一节还没存到手机上，连上网再打开一次就好。'); setChrome('tabs', 'toc'); return;
+    }
     await Promise.all([terms, loadUpdates()]);
+    if (seq !== routeSeq) return;
     const t = chapT(cm);
     const rc = readInChapter(c);
     view.className = 'page read';
@@ -452,15 +463,17 @@
       <a class="lrow resumerow" href="#/read/${r.c}/${n}"><span class="bead ${chapT(cm)}">${r.c}</span><span class="tx"><b id="rsttl">${esc(titleAt(r.c, n) || `第 ${r.c} 节 · ${cm.s}`)}</b><small>上次读到第 ${n} 条${rc ? ` · 本节读了 ${rc}` : ''}</small></span><span class="rgo">接着读</span></a>` });
   }
   // 目录画完以后再补两样：上次那条的标题（在 meta.json 里）、原书改动的条数（在 updates.json 里）
-  function fillToc() {
+  function fillToc(seq) {
     const r = S.resume, cm = r && chap(r.c);
     if (cm && !titleAt(r.c, r.n)) {
       loadMeta().then(() => {
+        if (seq !== routeSeq) return;
         const el = $('#rsttl'), t = titleAt(r.c, Math.min(Math.max(1, r.n), cm.cnt));
         if (el && t) el.textContent = t;
       }).catch(() => {});
     }
     loadUpdates().then(() => {
+      if (seq !== routeSeq) return;
       const lab = $('#updlabel'), sub = $('#updsub'), cnt = $('#updcount');
       if (!sub) return;
       const added = Object.values(UPDATES.items).filter((v) => v.added).length;
@@ -476,7 +489,7 @@
       if (added) cnt.textContent = added; else cnt.remove();
     });
   }
-  async function viewToc() {
+  async function viewToc(seq) {
     let f = 'all';
     try { f = sessionStorage.getItem('tocf') || 'all'; } catch (e) { /* 忽略 */ }
     const st = META.stats, read = readCount();
@@ -498,7 +511,7 @@
       <p class="tagline">不用全做，挑走一两条就算数。</p>`;
     renderToc(f);
     setChrome('tabs', 'toc');
-    fillToc();
+    fillToc(seq);
   }
   function renderToc(f) {
     try { sessionStorage.setItem('tocf', f); } catch (e) { /* 忽略 */ }
@@ -527,7 +540,7 @@
       <span class="ct">${hl(e.t, terms)}</span>
       <span class="cp">${hl(e.p, terms)}</span>` });
   }
-  async function viewSearch(params) {
+  async function viewSearch(params, seq) {
     SS = { q: params.get('q') || '', fs: new Set((params.get('f') || '').split(',').filter(Boolean)), shown: 30, res: [] };
     view.className = 'page live';
     view.innerHTML = `
@@ -545,6 +558,7 @@
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
     $('#hint').textContent = '正在载入全书索引…';
     await loadIndex();
+    if (seq !== routeSeq) return;
     doSearch();
     if (!SS.q && matchMedia('(pointer: fine)').matches) input.focus();
   }
@@ -594,8 +608,9 @@
   // ---------- 视图：读过的改了 ----------
   let addedList = [], addedShown = 20;
   const FIELD_ORDER = ['标题', '成本', '说人话', '收益', '证据等级', '来源', '备注'];
-  async function viewUpdates() {
+  async function viewUpdates(seq) {
     await Promise.all([loadUpdates(), loadMeta().catch(() => null)]);
+    if (seq !== routeSeq) return;
     const changed = changedSinceRead();
     const totalChanged = Object.values(UPDATES.items).filter((v) => v.changed).length;
     addedList = Object.entries(UPDATES.items).filter(([, v]) => v.added).sort((a, b) => b[1].added.localeCompare(a[1].added));
@@ -743,8 +758,9 @@
     refreshCacheUI();
     askCacheStatus();
   }
-  async function viewList(kind) {
+  async function viewList(kind, seq) {
     await loadIndex();
+    if (seq !== routeSeq) return;
     const map = kind === 'fav' ? S.fav : S.done;
     const by = new Map(INDEX.map((e) => [e.id, e]));
     const list = Object.entries(map).sort((a, b) => b[1] - a[1]).map(([id]) => by.get(id)).filter(Boolean);
@@ -776,13 +792,20 @@
     for (const part of (r || '').split('~').filter(Boolean)) {
       const [c, b] = part.split('.');
       const cm = chap(+c);
-      if (!cm) continue;
+      if (!cm || !b) continue;
       const bytes = unb64u(b);
-      for (let i = 0; i < cm.cnt; i++) if (bytes[i >> 3] & (128 >> (i & 7))) read[`${c}-${i + 1}`] = 1;
+      for (let i = 0; i < cm.cnt; i++) if (bytes[i >> 3] & (128 >> (i & 7))) read[`${cm.n}-${i + 1}`] = 1;
     }
-    const ids = (x) => (x || '').split('~').filter((id) => /^\d+-\d+$/.test(id));
+    const ids = (x) => (x || '').split('~').map((id) => /^(\d+)-(\d+)$/.exec(id)).filter((m) => {
+      if (!m) return false;
+      const cm = chap(+m[1]), n = +m[2];
+      return cm && n >= 1 && n <= cm.cnt;
+    }).map((m) => `${+m[1]}-${+m[2]}`);
     const pm = /^(\d+)-(\d+)$/.exec(p || '');
-    return { read, fav: ids(f), done: ids(d), resume: pm ? { c: +pm[1], n: +pm[2] } : null };
+    const rcm = pm && chap(+pm[1]);
+    const rn = pm ? +pm[2] : 0;
+    const resume = rcm && rn >= 1 && rn <= rcm.cnt ? { c: rcm.n, n: rn } : null;
+    return { read, fav: ids(f), done: ids(d), resume };
   }
   let exportURL = '';
   function exportProgress() {
@@ -960,16 +983,16 @@
 
   // ---------- 路由 ----------
   const ROUTES = [
-    [/^#?\/?$/, () => viewToc()],
-    [/^#\/toc$/, () => viewToc()],
+    [/^#?\/?$/, (seq) => viewToc(seq)],
+    [/^#\/toc$/, (seq) => viewToc(seq)],
     [/^#\/(?:home|intro)$/, () => location.replace('#/')], // 以前的首页地址，收藏过的也能打开
-    [/^#\/read\/(\d+)(?:\/(\d+))?$/, (c, n) => viewRead(+c, n ? +n : 0)],
-    [/^#\/search(?:\?(.*))?$/, (qs) => viewSearch(new URLSearchParams(qs || ''))],
-    [/^#\/updates$/, () => viewUpdates()],
+    [/^#\/read\/(\d+)(?:\/(\d+))?$/, (c, n, seq) => viewRead(+c, n ? +n : 0, seq)],
+    [/^#\/search(?:\?(.*))?$/, (qs, seq) => viewSearch(new URLSearchParams(qs || ''), seq)],
+    [/^#\/updates$/, (seq) => viewUpdates(seq)],
     [/^#\/sos$/, () => viewSOS()],
     [/^#\/cpr$/, () => viewCPR()],
     [/^#\/me$/, () => viewMe()],
-    [/^#\/list\/(fav|done)$/, (k) => viewList(k)],
+    [/^#\/list\/(fav|done)$/, (k, seq) => viewList(k, seq)],
     [/^#\/p\/([A-Za-z0-9_-]+)$/, (code) => viewImport(code)],
   ];
   function teardown() {
@@ -987,12 +1010,16 @@
       const el = document.getElementById(`e-${same[1]}-${same[2]}`);
       if (el) { el.scrollIntoView({ behavior: smooth(), block: 'start' }); return; }
     }
+    const seq = ++routeSeq;
     teardown();
     if (!h.startsWith('#/read/')) window.scrollTo(0, 0);
     for (const [re, fn] of ROUTES) {
       const m = re.exec(h);
       if (m) {
-        try { await fn(...m.slice(1)); } catch (err) { console.error(err); view.className = 'page'; view.innerHTML = errHTML('页面没打开，可能是网络断了。'); }
+        try { await fn(...m.slice(1), seq); } catch (err) {
+          if (seq !== routeSeq) return;
+          console.error(err); view.className = 'page'; view.innerHTML = errHTML('页面没打开，可能是网络断了。');
+        }
         return;
       }
     }
